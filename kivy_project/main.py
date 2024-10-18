@@ -1,3 +1,8 @@
+#--------------------------------------------------------------------------------#
+# Peter Buckley
+# 10/18/2024
+# Run this python file to startup all of the project processes 
+#--------------------------------------------------------------------------------#
 
 from multiprocessing import Process, Pipe
 import kivy_app

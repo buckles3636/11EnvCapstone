@@ -1,4 +1,8 @@
-
+#--------------------------------------------------------------------------------#
+# Peter Buckley
+# 10/18/2024
+# This file serves as a placeholder to recive setpoints from the gui
+#--------------------------------------------------------------------------------#
 import time
 from multiprocessing import Pipe
 
