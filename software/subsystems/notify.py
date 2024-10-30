@@ -160,7 +160,7 @@ class Flag:
             )
         
         elif (self.MSMT == "Temperature"):
-            report = "**Temperature %s (%s @ %s):**<br>*Set Point:* %.1f$^\circ$C | *Current:* %.1f$^\circ$C | *Thresh:* %.1f$^\circ$C" % (
+            report = "**Temperature %s (%s @ %s):**<br>*Set Point:* $%.1f ^\circ C$ | *Current:* $%.1f^\circ C$ | *Thresh:* $%.1f ^\circ C$" % (
                 self.FLAG_STATUS,
                 date,
                 time,
