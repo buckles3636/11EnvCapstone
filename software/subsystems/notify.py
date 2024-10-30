@@ -1,5 +1,7 @@
 import multiprocessing as mp
 from datetime import datetime
+import requests
+from urllib.parse import quote_plus
 
 from subsystem import Subsystem
 
@@ -140,7 +142,7 @@ class Flag:
         # compile markdown message
         report = ""
         if (self.MSMT == "CO2"):
-            report = "**CO2 %s (%s @ %s):**<br>*Set Point:* %.1f%% | *Current:* %.1f%% | *Thresh:* %.1f%%" % (
+            report = "CO2 %s (%s @ %s):\nSet Point: %.1f%% | Current: %.1f%% | Thresh: %.1f%%" % (
                 self.FLAG_STATUS,
                 date,
                 time,
@@ -150,7 +152,7 @@ class Flag:
             )
 
         elif (self.MSMT == "Humidity"):
-            report = "**Humidity %s (%s @ %s):**<br>*Set Point:* %.0f%% | *Current:* %.0f%% | *Thresh:* %.0f%%" % (
+            report = "Humidity %s (%s @ %s):\n Set Point: %.0f%% | Current: %.0f%% | Thresh: %.0f%%" % (
                 self.FLAG_STATUS,
                 date,
                 time,
@@ -160,7 +162,7 @@ class Flag:
             )
         
         elif (self.MSMT == "Temperature"):
-            report = "**Temperature %s (%s @ %s):**<br>*Set Point:* $%.1f ^\circ C$ | *Current:* $%.1f^\circ C$ | *Thresh:* $%.1f ^\circ C$" % (
+            report = "Temperature %s (%s @ %s):\nSet Point: %.1f degC | Current: %.1f degC | Thresh: %.1f degC" % (
                 self.FLAG_STATUS,
                 date,
                 time,
@@ -172,4 +174,47 @@ class Flag:
         return report
 
 class TeleBot():
-    pass
+    
+    NAME: str       # The name of the bot - must match name of created Telegram bot​
+    USERNAME: str   # The username of the bot - must match username of created Telegram bot​
+    TOKEN: str      # The token for the bot - must match the token for the created Telegram bot​
+    CHAT_ID: str    # The unique identifier for the target chat to send messages to
+    
+    def __init__(self, name: str, username: str, token: str, chat_id: str) -> 'TeleBot':
+        """
+        Initialize a TeleBot object used to send messages to a defined Telegram chat.​
+
+        @param name: The name of the bot - must match name of created Telegram bot​
+        @param username: The username of the bot - must match username of created Telegram bot​
+        @param token: The token for the bot - must match the token for the created Telegram bot​
+
+        @rtype TeleBot
+        @return A initialized bot ready to send messages
+        """
+
+        self.NAME = name
+        self.USERNAME = username
+        self.TOKEN = token
+        self.CHAT_ID = chat_id
+
+    def send_message(self, msg: str) -> datetime:
+        """
+        Send the provided string to the Telegram chat using Python requests library, returning the date and time the message was sent.​
+
+        @param msg: The string in MarkdownV2 format to be sent. Max of 4096 characters.
+
+        @rtype datetime
+        @return The date and time the message was sent.
+        """
+
+        # build url and make request
+        url = "https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s" % (self.TOKEN, self.CHAT_ID, msg)
+        response = requests.post(url)
+
+        # convert message timestamp to a datetime object
+        if (response.json()["ok"]):
+            unix_timestamp = response.json()["result"]["date"]
+            return datetime.fromtimestamp(unix_timestamp)
+        else:
+            print("MESSAGE NOT DELIVERED:\n", response.json())
+            return None
