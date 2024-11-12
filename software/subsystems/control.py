@@ -39,20 +39,20 @@ class Controller(Subsystem):
 
 class PID():
      
-    KP: float                 # proportional gain
-    KI: float                 # integral gain
-    KD: float                 # derivative gain
-    TAU: float                # derivative low-pass filter time constant
-    OUTMIN: float             # output limit min
-    OUTMAX: float             # output limit max
-    T: float                  # sample time in seconds
-    _integrator: float        # integrator "memory"
-    _differentiator: float    # differentiator "memory"
-    _prev_error: float        # previous error value
-    _prev_pt: float           # previous measurement data point value
-    _output: float            # PID controller output
+     KP: float                 # proportional gain
+     KI: float                 # integral gain
+     KD: float                 # derivative gain
+     TAU: float                # derivative low-pass filter time constant
+     OUTMIN: float             # output limit min
+     OUTMAX: float             # output limit max
+     T: float                  # sample time in seconds
+     _integrator: float        # integrator "memory"
+     _differentiator: float    # differentiator "memory"
+     _prev_error: float        # previous error value
+     _prev_pt: float           # previous measurement data point value
+     _output: float            # PID controller output
 
-    def __init__(self, kp: float, ki: float, kd: float, tau: float, outmin: float, outmax: float, t: float) -> 'PID':
+     def __init__(self, kp: float, ki: float, kd: float, tau: float, outmin: float, outmax: float, t: float) -> 'PID':
         """
         Initialize PID controller object and set attributes for gains and time characteristics
 
@@ -80,7 +80,7 @@ class PID():
         self._prev_pt = []
         self._output = 0
 
-     def update_PID(self, setpoint: float, pt: float) -> 'PID':
+     def update(self, setpoint: float, pt: float) -> 'PID':
           """
           Update PID output and stored values.
           output based on digitized standard PID form + some practicle considerations (anti-windup and HF noise rejection)
