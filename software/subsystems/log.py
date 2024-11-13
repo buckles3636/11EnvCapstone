@@ -28,8 +28,7 @@ class Logger(Subsystem):
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out)
 
           # create any necessary custom classes for functionality
-          self.class_1 = Class1()
-          self.class_2 = Class2()
+          self.datalogger = DataLogger()
 
      def start(self) -> None:
           # override the parent start() function
@@ -39,9 +38,42 @@ class Logger(Subsystem):
           pass
 
 # custom class
-class Class1():
-    pass
+class DataLogger:
+    def __init__(self) -> None:
+        self.current_file = None
+        self.start_timestamp = None
 
-# custom class
-class Class2():
-    pass
+    def update_file_status(self, running: bool) -> None:
+        """
+        Handle file creation and renaming based on the system's running status.
+
+        @param running: Boolean indicating whether the system is running.
+        """
+        if running and not self.current_file:
+            # System started running, create a new file
+            self.start_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.current_file = f"{self.start_timestamp}.csv"
+            with open(self.current_file, "w", newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(["Temperature", "Humidity", "CO2 Concentration"])
+        
+        elif not running and self.current_file:
+            # System stopped running, rename the file
+            end_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            new_file_name = f"{self.start_timestamp}-done_{end_timestamp}.csv"
+            os.rename(self.current_file, new_file_name)
+            self.current_file = None
+            self.start_timestamp = None
+
+    def log_sensor_data(self, data: dict) -> None:
+        """
+        Log sensor data to the current file if it exists.
+
+        @param data: Dictionary containing sensor data.
+        """
+        if self.current_file:
+            with open(self.current_file, "a", newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([data.get("temperature", ""), 
+                                 data.get("humidity", ""), 
+                                 data.get("CO2", "")])
