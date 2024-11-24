@@ -2,6 +2,11 @@ from multiprocessing import Process, Pipe
 import random
 import csv
 
+import csv_writer
+import test_data_generator
+from accuracy_check import check_transmission_accuracy
+
+
 def generate_test_csv(filename="test_data.csv", rows=20000):
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
