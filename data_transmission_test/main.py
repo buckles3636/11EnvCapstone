@@ -4,7 +4,7 @@ import csv
 
 import csv_writer
 import test_data_generator
-from accuracy_check import check_transmission_accuracy
+import accuracy_check
 
 
 def generate_test_csv(filename="test_data.csv", rows=20000):
@@ -39,4 +39,4 @@ if __name__ == "__main__":
     writer_process.join()
 
     # Check transmission accuracy and plot results
-    check_transmission_accuracy()
+    accuracy_check()
