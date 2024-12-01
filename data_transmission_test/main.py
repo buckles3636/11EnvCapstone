@@ -1,3 +1,9 @@
+#--------------------------------------------------------------------------------#
+# Peter Buckley
+# 11/24/2024
+# This script instantiates all of the processes in the data transmission test suite
+#--------------------------------------------------------------------------------#
+
 from multiprocessing import Process, Pipe
 import random
 import csv

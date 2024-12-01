@@ -1,3 +1,10 @@
+#--------------------------------------------------------------------------------#
+# Peter Buckley
+# 11/24/2024
+# This process checks for mismatches in the input and output data csv files and
+# graphs any deviations.
+#--------------------------------------------------------------------------------#
+
 import pandas as pd
 import matplotlib.pyplot as plt
 

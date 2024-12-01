@@ -1,3 +1,10 @@
+#--------------------------------------------------------------------------------#
+# Peter Buckley
+# 11/24/2024
+# This process reads sensor data at a user defined interval and writes the data 
+# to a CSV file.
+#--------------------------------------------------------------------------------#
+
 import csv
 from multiprocessing import Pipe
 
