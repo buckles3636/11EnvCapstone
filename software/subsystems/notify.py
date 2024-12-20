@@ -8,21 +8,31 @@ from subsystem import Subsystem
 class Notifier(Subsystem):
 
     def __init__(self, sensor_data_in: mp.connection.PipeConnection = None,
-                    sensor_data_out: mp.connection.PipeConnection = None,
-                    set_points_in: mp.connection.PipeConnection = None,
-                    set_points_out: mp.connection.PipeConnection = None) -> 'Notifier':
+                 sensor_data_out: mp.connection.PipeConnection = None,
+                 set_points_in: mp.connection.PipeConnection = None,
+                 set_points_out: mp.connection.PipeConnection = None,
+                 status_in: mp.connection.PipeConnection = None,
+                 status_out: mp.connection.PipeConnection = None) -> 'Notifier':
         """
-        Initialize the subsystem with one-way Pipes to communicate with the data bus
+        Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
-        @param sensor_data_in: multiprocessing one-way Pipe to receive sensor data
-        @param sensor_data_out: multiprocessing one-way Pipe to send sensor data
-        @param set_point_in: multiprocessing one-way Pipe to receive set points
-        @param set_point_out: multiprocessing one-way Pipe to send set points
-
-        @rtype: Notifier
-        @return: Initialized Notifier subsystem with necessary Pipes for communication
+        @param sensor_data_in: multiprocessing one-way Pipe to receive sensor data in the following format:
+        {"CO2": %.1f, "temperature": %.1f, "humidity": %.0f}
+        @param sensor_data_out: multiprocessing one-way Pipe to send sensor data in the following format:
+        {"CO2": %.1f, "temperature": %.1f, "humidity": %.0f}
+        @param set_points_in: multiprocessing one-way Pipe to receive set points in the following format:
+        {"CO2": %.1f, "temperature": %.1f, "humidity": %.0f}
+        @param set_points_out: multiprocessing one-way Pipe to send set points in the following format:
+        {"CO2": %.1f, "temperature": %.1f, "humidity": %.0f}
+        @param status_in: multiprocessing one-way Pipe to receive status in the following format:
+        {"status": "on" or "off"}
+        @param status_out: multiprocessing one-way Pipe to send status in the following format:
+        {"status": "on" or "off"}
+        @rtype: Subsystem
+        @return: Initialized subsystem with necessary Pipes for communication
         """
-        super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out)
+
+        super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
         self.flagger = Flagger()
         self.telebot = TeleBot()
