@@ -1,6 +1,6 @@
 import multiprocessing as mp
 
-from subsystem import Subsystem
+from subsystems.subsystem import Subsystem
 
 class Logger(Subsystem):
 

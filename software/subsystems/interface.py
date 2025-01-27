@@ -7,7 +7,7 @@ from kivy.uix.button import Button
 from kivy.clock import Clock
 import multiprocessing as mp
 
-from subsystem import Subsystem
+from subsystems.subsystem import Subsystem
 
 class Interfacer(Subsystem):
 

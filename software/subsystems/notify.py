@@ -3,7 +3,7 @@ from datetime import datetime
 import requests
 from urllib.parse import quote_plus
 
-from subsystem import Subsystem
+from subsystems.subsystem import Subsystem
 
 class Notifier(Subsystem):
 
