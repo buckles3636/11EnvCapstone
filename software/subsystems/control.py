@@ -55,11 +55,14 @@ class PID():
      self._differentiator: float    # differentiator "memory"
      self._prev_error: float        # previous error value
      self._prev_pt: float           # previous measurement data point value
+     self._set_point: float         # PID controller setpoint
      self._output: float            # PID controller output
+     self._status: bool             # enable/disable controller       
 
      def __init__(self, kp: float, ki: float, kd: float, tau: float, outmin: float, outmax: float, t: float) -> 'PID':
         """
-        Initialize PID controller object and set attributes for gains and time characteristics
+        Initialize PID controller object and set attributes for gains and time characteristics.
+        The setpoint is uninitialized and the controller is disabled on initialization.
 
         @param kp: proportional gain
         @param ki: integral gain
@@ -83,20 +86,30 @@ class PID():
         self._differentiator = []
         self._prev_error = []
         self._prev_pt = []
-        self._output = 0
+        self._set_point = None
+        self._status = False
 
-     def update(self, setpoint: float, pt: float) -> 'PID':
+     def output(self, pt: float) -> float:
           """
-          Update PID output and stored values.
+          Update PID stored values and return the output.
           output based on digitized standard PID form + some practicle considerations (anti-windup and HF noise rejection)
 
           @param setpoint: setpoint from user
-          @param pt: the most recent data point
 
-          @rtype PID
-          @return updated PID
+          @rtype float
+          @return PID output value
           """
-          _error = setpoint - pt
+          # check for uninitialized set point
+          if self._set_point == None:
+               print("Set point not initialized")
+               return 0
+          
+          # disable if controller is not active
+          if not self._status:
+               print("Controller inactive")
+               return 0
+
+          _error = self._setpoint - pt
 
           # compute proportional term
           _proportional = self.KP*_error
@@ -129,19 +142,41 @@ class PID():
           # derivative on measurement to prevent derivative kick
           self._differentiator = (2 * self.KD * (pt - self._prev_pt) + (2 * self.TAU - self.T) * self._differentiator) / (2 * self.TAU + self.T)
 
-          # update output
-          self._output = _proportional + self._integrator + self._differentiator
+          # calculate output
+          output = _proportional + self._integrator + self._differentiator
 
-          if self._output > self.OUTMAX:
-               self._output = self.OUTMAX
-          elif self._output < self.OUTMIN:
-               self._output = self.OUTMIN
+          if output > self.OUTMAX:
+               output = self.OUTMAX
+          elif output < self.OUTMIN:
+               output = self.OUTMIN
           
           # store current error and data point for next update
           self._prev_error = _error
           self._prev_pt = pt
 
-          return self
+          return output
+
+     def setpoint(self, setpoint: float) -> None:
+          """
+          Update the setpoint.
+
+          @param setpoint: setpoint from user
+
+          @rtype None
+          """
+          self._set_point = setpoint
+          return
+     
+     def status(self, status: bool) -> None:
+          """
+          Update the status.
+
+          @param status: status from user [True, False]
+
+          @rtype None
+          """
+          self._status = status
+          return
 
 class TunableBangBang():
 
@@ -153,7 +188,7 @@ class TunableBangBang():
 
      def __init__(self, t: float, duty_cycle: float, init_thresh: float) -> 'TunableBangBang':
           """
-          Initialize the controller with provided values. Status is False (disabled) and the set point is None by default.
+          Initialize the controller with provided values. Status is False (disabled) and the set point is uninitialized on initialization.
 
           @param t: sample time in seconds
           @param duty_cycle: duty cycle for actuator: [0,1]
@@ -183,14 +218,16 @@ class TunableBangBang():
                print("Set point not initialized")
                return 0
 
-          if self._status:
-               if pt < self._set_point:
-                    if pt < self.INIT_THRESH:
-                         return self.T # actuator on for complete period
-                    else:
-                         return self.T * self.DUTY_CYCLE # actuator on for duty cycle
+          # disable if controller is not active
+          if not self._status:
+               print("Controller inactive")
+               return 0
+
+          if pt < self._set_point:
+               if pt < self.INIT_THRESH:
+                    return self.T # actuator on for complete period
                else:
-                    return 0  # actuator off
+                    return self.T * self.DUTY_CYCLE # actuator on for duty cycle
      
      def setpoint(self, setpoint: float) -> None:
           """
