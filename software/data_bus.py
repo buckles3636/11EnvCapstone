@@ -10,8 +10,7 @@ from subsystems.notify import Notifier
 
 if __name__ == "__main__":
 #-- Create logger
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
+    logger = multiprocessing.log_to_stderr()
     logger.info("DATA BUS")
 
 #-- Create pipes for communication
@@ -43,11 +42,11 @@ if __name__ == "__main__":
     logger.info("Subsystems instantiated")
 
 #-- Create processes
-    the_sensor_process = Process(target=the_sensor.start)
-    #the_interface_process = Process(target=the_interfacer.start)
-    the_controller_process = Process(target=the_controller.start)
-    the_logger_process = Process(target=the_logger.start) 
-    the_notifier_process = Process(target=the_notifier.start)
+    the_sensor_process = Process(target=the_sensor.start, name="Sensor")
+    #the_interface_process = Process(target=the_interfacer.start, name=Interfacer)
+    the_controller_process = Process(target=the_controller.start, name="Controller")
+    the_logger_process = Process(target=the_logger.start, name="Logger")
+    the_notifier_process = Process(target=the_notifier.start, name="Notifier")
     logger.info("Processes created for subsystem start() functions")
 
 #-- Start processes
