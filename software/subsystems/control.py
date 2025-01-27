@@ -44,18 +44,18 @@ class Controller(Subsystem):
 
 class PID():
      
-     KP: float                 # proportional gain
-     KI: float                 # integral gain
-     KD: float                 # derivative gain
-     TAU: float                # derivative low-pass filter time constant
-     OUTMIN: float             # output limit min
-     OUTMAX: float             # output limit max
-     T: float                  # sample time in seconds
-     _integrator: float        # integrator "memory"
-     _differentiator: float    # differentiator "memory"
-     _prev_error: float        # previous error value
-     _prev_pt: float           # previous measurement data point value
-     _output: float            # PID controller output
+     self.KP: float                 # proportional gain
+     self.KI: float                 # integral gain
+     self.KD: float                 # derivative gain
+     self.TAU: float                # derivative low-pass filter time constant
+     self.OUTMIN: float             # output limit min
+     self.OUTMAX: float             # output limit max
+     self.T: float                  # sample time in seconds
+     self._integrator: float        # integrator "memory"
+     self._differentiator: float    # differentiator "memory"
+     self._prev_error: float        # previous error value
+     self._prev_pt: float           # previous measurement data point value
+     self._output: float            # PID controller output
 
      def __init__(self, kp: float, ki: float, kd: float, tau: float, outmin: float, outmax: float, t: float) -> 'PID':
         """
@@ -142,3 +142,74 @@ class PID():
           self._prev_pt = pt
 
           return self
+
+class TunableBangBang():
+
+     self.DUTY_CYCLE: float        # duty cycle for actuator: [0,1]   
+     self.INIT_THRESH: float       # threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
+     self.T: float                 # sample time in seconds
+     self._set_point: float        # the set point to control to
+     self._status: bool            # enable/disable controller       
+
+     def __init__(self, t: float, duty_cycle: float, init_thresh: float) -> 'TunableBangBang':
+          """
+          Initialize the controller with provided values. Status is False (disabled) and the set point is None by default.
+
+          @param t: sample time in seconds
+          @param duty_cycle: duty cycle for actuator: [0,1]
+          @param init_thresh: threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
+
+          @rtype TunableBangBang
+          @return initialized controller
+          """
+          self.DUTY_CYCLE = duty_cycle
+          self.INIT_THRESH = init_thresh
+          self.T = t
+          self._set_point = None
+          self._status = False
+
+     def output(self, pt: float) -> float:
+          """
+          Update controller output and stored values.
+
+          @param pt: the most recent data point
+
+          @rtype float
+          @return time in seconds that the actuator should be turned on
+          """
+
+          # check for uninitialized set point
+          if self._set_point == None:
+               print("Set point not initialized")
+               return 0
+
+          if self._status:
+               if pt < self._set_point:
+                    if pt < self.INIT_THRESH:
+                         return self.T # actuator on for complete period
+                    else:
+                         return self.T * self.DUTY_CYCLE # actuator on for duty cycle
+               else:
+                    return 0  # actuator off
+     
+     def setpoint(self, setpoint: float) -> None:
+          """
+          Update the setpoint.
+
+          @param setpoint: setpoint from user
+
+          @rtype None
+          """
+          self._set_point = setpoint
+          return
+     
+     def status(self, status: bool) -> None:
+          """
+          Update the status.
+
+          @param status: status from user [True, False]
+
+          @rtype None
+          """
+          self._status = status
+          return
