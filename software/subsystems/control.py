@@ -42,22 +42,22 @@ class Controller(Subsystem):
           # data packets can be created like the following: data_dict = {"CO2": 5.1, "temperature": 37.0, "humidity": 90.0}
           pass
 
-class PID():
+class PID:
      
-     self.KP: float                 # proportional gain
-     self.KI: float                 # integral gain
-     self.KD: float                 # derivative gain
-     self.TAU: float                # derivative low-pass filter time constant
-     self.OUTMIN: float             # output limit min
-     self.OUTMAX: float             # output limit max
-     self.T: float                  # sample time in seconds
-     self._integrator: float        # integrator "memory"
-     self._differentiator: float    # differentiator "memory"
-     self._prev_error: float        # previous error value
-     self._prev_pt: float           # previous measurement data point value
-     self._set_point: float         # PID controller setpoint
-     self._output: float            # PID controller output
-     self._status: bool             # enable/disable controller       
+     # KP: float                 # proportional gain
+     # KI: float                 # integral gain
+     # KD: float                 # derivative gain
+     # TAU: float                # derivative low-pass filter time constant
+     # OUTMIN: float             # output limit min
+     # OUTMAX: float             # output limit max
+     # T: float                  # sample time in seconds
+     # _integrator: float        # integrator "memory"
+     # _differentiator: float    # differentiator "memory"
+     # _prev_error: float        # previous error value
+     # _prev_pt: float           # previous measurement data point value
+     # _set_point: float         # PID controller setpoint
+     # _output: float            # PID controller output
+     # _status: bool             # enable/disable controller
 
      def __init__(self, kp: float, ki: float, kd: float, tau: float, outmin: float, outmax: float, t: float) -> 'PID':
         """
@@ -178,13 +178,13 @@ class PID():
           self._status = status
           return
 
-class TunableBangBang():
+class TunableBangBang:
 
-     self.DUTY_CYCLE: float        # duty cycle for actuator: [0,1]   
-     self.INIT_THRESH: float       # threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
-     self.T: float                 # sample time in seconds
-     self._set_point: float        # the set point to control to
-     self._status: bool            # enable/disable controller       
+     # DUTY_CYCLE: float        # duty cycle for actuator: [0,1]
+     # INIT_THRESH: float       # threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
+     # T: float                 # sample time in seconds
+     # _set_point: float        # the set point to control to
+     # _status: bool            # enable/disable controller
 
      def __init__(self, t: float, duty_cycle: float, init_thresh: float) -> 'TunableBangBang':
           """
