@@ -33,6 +33,9 @@ class Sensor(Subsystem):
           # initialize the subsystem parent class with data pipes
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
+          # initialize the logger
+          self.logger = mp.log_to_stderr()
+
           # create any necessary custom classes for functionality
           self.class_1 = Class1()
           self.class_2 = Class2()
@@ -45,6 +48,7 @@ class Sensor(Subsystem):
           while True:
               time.sleep(2)
               self.pipe_sensor_data_out.send({"CO2": 10.0, "temperature": 10.0, "humidity": 10.0})
+              self.logger.info("data sent")
 
 # custom class
 class Class1():

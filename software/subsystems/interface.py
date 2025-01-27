@@ -39,6 +39,9 @@ class Interfacer(Subsystem):
           # initialize the subsystem parent class with data pipes
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
+          # initialize the logger
+          self.logger = mp.log_to_stderr()
+
           # create any necessary custom classes for functionality
           self.kivyapp = KivyApp()
 
