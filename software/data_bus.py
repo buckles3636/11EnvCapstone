@@ -1,4 +1,4 @@
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, connection
 
 from subsystems.sense import Sensor
 from subsystems.interface import Interfacer
@@ -57,4 +57,24 @@ if __name__ == "__main__":
     the_notifier_process.join()
 
 #-- Poll pipes and distrubute data
-    # TODO
+    while True:
+        # poll, receive, and distribute sensor data
+        if sensor_receive_sensor_data.poll():
+            sensor_data = sensor_receive_sensor_data.recv()
+            interfacer_send_sensor_data.send(sensor_data)
+            controller_send_sensor_data.send(sensor_data)
+            notifier_send_sensor_data.send(sensor_data)
+            logger_send_sensor_data.send(sensor_data)
+        
+        # poll, receive, and distribute set points
+        if interfacer_receive_set_points.poll():
+            set_points = interfacer_receive_set_points.recv()
+            controller_send_set_points.send(set_points)
+            notifier_send_set_points.send(set_points)
+            logger_send_set_points.send(set_points)
+
+        # poll, receive, and distribute status
+        if interfacer_receive_status.poll():
+            status = interfacer_receive_status.recv()
+            controller_send_status.send(status)
+            notifier_send_status.send(status)
