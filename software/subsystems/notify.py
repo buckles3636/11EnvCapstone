@@ -34,8 +34,8 @@ class Notifier(Subsystem):
 
         super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
-        self.flagger = Flagger()
-        self.telebot = TeleBot()
+        #self.flagger = Flagger()
+        #self.telebot = TeleBot()
 
     def start(self) -> None:
         pass

@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import time
 
 from subsystems.subsystem import Subsystem
 
@@ -41,7 +42,9 @@ class Sensor(Subsystem):
           # this is where you begin looping your process for implmenting functionality
           # pipes can be assessed like the following: self.pipe_sensor_data_in.send(<data_here>)
           # data packets can be created like the following: data_dict = {"CO2": 5.1, "temperature": 37.0, "humidity": 90.0}
-          pass
+          while True:
+              time.sleep(2)
+              self.pipe_sensor_data_out.send({"CO2": 10.0, "temperature": 10.0, "humidity": 10.0})
 
 # custom class
 class Class1():

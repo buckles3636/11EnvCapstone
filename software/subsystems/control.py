@@ -33,7 +33,7 @@ class Controller(Subsystem):
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
           # create any necessary custom classes for functionality
-          self.pid = PID()
+          # self.pid = PID()
 
      def start(self) -> None:
           # override the parent start() function
@@ -216,18 +216,20 @@ class TunableBangBang:
           # check for uninitialized set point
           if self._set_point == None:
                print("Set point not initialized")
-               return 0
+               return 0 # actuator off
 
           # disable if controller is not active
           if not self._status:
                print("Controller inactive")
-               return 0
+               return 0 # actuator off
 
           if pt < self._set_point:
                if pt < self.INIT_THRESH:
                     return self.T # actuator on for complete period
                else:
                     return self.T * self.DUTY_CYCLE # actuator on for duty cycle
+          else:
+               return 0 # actuator off
      
      def setpoint(self, setpoint: float) -> None:
           """
