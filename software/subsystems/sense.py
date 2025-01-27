@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import time
 
 from subsystems.subsystem import Subsystem
 
@@ -32,6 +33,9 @@ class Sensor(Subsystem):
           # initialize the subsystem parent class with data pipes
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
+          # initialize the logger
+          self.logger = mp.log_to_stderr()
+
           # create any necessary custom classes for functionality
           self.class_1 = Class1()
           self.class_2 = Class2()
@@ -41,7 +45,10 @@ class Sensor(Subsystem):
           # this is where you begin looping your process for implmenting functionality
           # pipes can be assessed like the following: self.pipe_sensor_data_in.send(<data_here>)
           # data packets can be created like the following: data_dict = {"CO2": 5.1, "temperature": 37.0, "humidity": 90.0}
-          pass
+          while True:
+              time.sleep(2)
+              self.pipe_sensor_data_out.send({"CO2": 10.0, "temperature": 10.0, "humidity": 10.0})
+              self.logger.info("data sent")
 
 # custom class
 class Class1():

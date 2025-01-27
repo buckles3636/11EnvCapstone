@@ -32,10 +32,14 @@ class Notifier(Subsystem):
         @return: Initialized subsystem with necessary Pipes for communication
         """
 
+        # initialize the subsystem parent class with data pipes
         super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
-        self.flagger = Flagger()
-        self.telebot = TeleBot()
+        # initialize the logger
+        self.logger = mp.log_to_stderr()
+
+        #self.flagger = Flagger()
+        #self.telebot = TeleBot()
 
     def start(self) -> None:
         pass
