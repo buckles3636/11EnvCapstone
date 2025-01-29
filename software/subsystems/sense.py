@@ -12,6 +12,8 @@ from sensirion_i2c_driver import LinuxI2cTransceiver, I2cConnection, CrcCalculat
 from sensirion_i2c_sht4x.device import Sht4xDevice
 from sensirion_i2c_stc3x.device import Stc3xDevice
 
+global TRANSMISSION_T = 1000 # data transmission period in milliseconds
+
 class Sensor(Subsystem):
 
      def __init__(self, sensor_data_in: mp.connection.Connection = None,
@@ -83,7 +85,7 @@ class Sensor(Subsystem):
 
                while True:
                     # Set the sampling to 1Hz
-                    time.sleep(1.0)
+                    cur_ns = time.monotonic_ns()
 
                     # Read humidity and temperature from SHT40 sensor and use
                     # it for CO2 measurement compensation.
@@ -101,4 +103,7 @@ class Sensor(Subsystem):
                     #                              "humidity": sht40_humidity.value})
                     self.pipe_sensor_data_out.send({"CO2": co2_concentration.value, "temperature": sht40_temperature.value, 
                                                   "humidity": sht40_humidity.value})
-                    print("SENSE:\t\tData read and transmitted")
+                    
+                    delta_ns = time.monotonic_ns() - cur_ns
+                    print("SENSE:\t\tData read and transmitted in %d ns", delta_ns)
+                    time.sleep((TRANSMISSION_T*1000 - delta_ns)/1000000)
