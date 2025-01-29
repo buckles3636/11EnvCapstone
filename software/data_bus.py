@@ -3,15 +3,15 @@ from multiprocessing import Process, Pipe
 import logging
 
 from subsystems.sense import Sensor
-from subsystems.interface import Interfacer
+#from subsystems.interface import Interfacer
 from subsystems.control import Controller
 from subsystems.log import Logger
 from subsystems.notify import Notifier
 
 if __name__ == "__main__":
 #-- Create logger
-    logger = multiprocessing.log_to_stderr()
-    logger.info("DATA BUS")
+    #logger = multiprocessing.log_to_stderr()
+    #logger.info("DATA BUS")
 
 #-- Create pipes for communication
     # sensor subsystem
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     notifier_receive_sensor_data, notifier_send_sensor_data = Pipe(duplex=False)
     notifier_receive_set_points, notifier_send_set_points = Pipe(duplex=False)
     notifier_receive_status, notifier_send_status = Pipe(duplex=False)
-    logger.info("Pipes created")
+    print("DATA BUS:\tPipes created")
 
 #-- Instantiate subsystems
     the_sensor = Sensor(sensor_data_out=sensor_send_sensor_data)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     the_controller = Controller(sensor_data_in=controller_receive_sensor_data, set_points_in=controller_receive_set_points, status_in=controller_receive_status)
     the_logger = Logger(sensor_data_in=logger_receive_sensor_data, set_points_in=logger_receive_set_points)
     the_notifier = Notifier(sensor_data_in=notifier_receive_sensor_data, set_points_in=notifier_receive_set_points, status_in=notifier_receive_status)
-    logger.info("Subsystems instantiated")
+    print("DATA BUS:\tSubsystems instantiated")
 
 #-- Create processes
     the_sensor_process = Process(target=the_sensor.start, name="Sensor")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     the_controller_process = Process(target=the_controller.start, name="Controller")
     the_logger_process = Process(target=the_logger.start, name="Logger")
     the_notifier_process = Process(target=the_notifier.start, name="Notifier")
-    logger.info("Processes created for subsystem start() functions")
+    print("DATA BUS:\tProcesses created for subsystem start() functions")
 
 #-- Start processes
     the_sensor_process.start()
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     the_controller_process.start()
     the_logger_process.start()
     the_notifier_process.start()
-    logger.info("Processes started")
+    print("DATA BUS:\tProcesses started")
 
 #-- Join processes: this says bring them all together when they finish executing
     #the_sensor_process.join(timeout=1)
@@ -68,13 +68,13 @@ if __name__ == "__main__":
     while True:
         # poll, receive, and distribute sensor data
         if sensor_receive_sensor_data.poll():
-            logger.info("sensor data received")
             sensor_data = sensor_receive_sensor_data.recv()
-            logger.info(sensor_data)
             interfacer_send_sensor_data.send(sensor_data)
             controller_send_sensor_data.send(sensor_data)
             notifier_send_sensor_data.send(sensor_data)
             logger_send_sensor_data.send(sensor_data)
+            print("DATA BUS:\tSensor data RX/TX complete")
+
         
         # poll, receive, and distribute set points
         if interfacer_receive_set_points.poll():
@@ -82,9 +82,13 @@ if __name__ == "__main__":
             controller_send_set_points.send(set_points)
             notifier_send_set_points.send(set_points)
             logger_send_set_points.send(set_points)
+            print("DATA BUS:\tSet points RX/TX complete")
+
 
         # poll, receive, and distribute status
         if interfacer_receive_status.poll():
             status = interfacer_receive_status.recv()
             controller_send_status.send(status)
             notifier_send_status.send(status)
+            print("DATA BUS:\tStatus RX/TX complete")
+
