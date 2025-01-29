@@ -4,12 +4,13 @@ from subsystems.subsystem import Subsystem
 
 class Controller(Subsystem):
 
-     def __init__(self, sensor_data_in: mp.connection.PipeConnection = None,
-                    sensor_data_out: mp.connection.PipeConnection = None,
-                    set_points_in: mp.connection.PipeConnection = None,
-                    set_points_out: mp.connection.PipeConnection = None,
-                    status_in: mp.connection.PipeConnection = None,
-                    status_out: mp.connection.PipeConnection = None) -> 'Controller':
+     def __init__(self, sensor_data_in: mp.connection.Connection = None,
+                    sensor_data_out: mp.connection.Connection = None,
+                    set_points_in: mp.connection.Connection = None,
+                    set_points_out: mp.connection.Connection = None,
+                    status_in: mp.connection.Connection = None,
+                    status_out: mp.connection.Connection = None,
+                    T: int = 1000) -> 'Controller':
           """
           Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
@@ -25,6 +26,8 @@ class Controller(Subsystem):
                {"status": "on" or "off"}
           @param status_out: multiprocessing one-way Pipe to send status in the following format:
                {"status": "on" or "off"}
+          @param T: sampling period in milliseconds (aka data is sent every T ms)
+
           @rtype: Controller
           @return: Initialized Controller subsystem with necessary Pipes for communication
           """
@@ -32,8 +35,10 @@ class Controller(Subsystem):
           # initialize the subsystem parent class with data pipes
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
+          self.T = T
+          
           # initialize the logger
-          self.logger = mp.log_to_stderr()
+          #self.logger = mp.log_to_stderr()
 
           # create any necessary custom classes for functionality
           # self.pid = PID()
