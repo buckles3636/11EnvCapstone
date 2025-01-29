@@ -73,7 +73,7 @@ if __name__ == "__main__":
             controller_send_sensor_data.send(sensor_data)
             notifier_send_sensor_data.send(sensor_data)
             logger_send_sensor_data.send(sensor_data)
-            print("DATA BUS:\tSensor data RX/TX complete")
+            print("DATA BUS:\tSensor data RX/TX complete (CO2: %.2f | T: %.2f | H: %.2f)" % (sensor_data["CO2"], sensor_data["temperature"], sensor_data["humidity"]))
 
         
         # poll, receive, and distribute set points
