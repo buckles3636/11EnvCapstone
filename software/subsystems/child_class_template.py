@@ -33,7 +33,7 @@ class Child_Subsystem(Subsystem):
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
           # initialize the logger
-          self.logger = mp.log_to_stderr()
+          #self.logger = mp.log_to_stderr()
 
           # create any necessary custom classes for functionality
           self.class_1 = Class1()

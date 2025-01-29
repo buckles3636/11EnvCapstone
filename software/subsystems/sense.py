@@ -12,8 +12,6 @@ from sensirion_i2c_driver import LinuxI2cTransceiver, I2cConnection, CrcCalculat
 from sensirion_i2c_sht4x.device import Sht4xDevice
 from sensirion_i2c_stc3x.device import Stc3xDevice
 
-global TRANSMISSION_T = 1000 # data transmission period in milliseconds
-
 class Sensor(Subsystem):
 
      def __init__(self, sensor_data_in: mp.connection.Connection = None,
@@ -21,7 +19,8 @@ class Sensor(Subsystem):
                  set_points_in: mp.connection.Connection = None,
                  set_points_out: mp.connection.Connection = None,
                  status_in: mp.connection.Connection = None,
-                 status_out: mp.connection.Connection = None) -> 'Sensor':
+                 status_out: mp.connection.Connection = None,
+                 T: int = 1000) -> 'Sensor':
           """
           Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
@@ -37,13 +36,16 @@ class Sensor(Subsystem):
                {"status": "on" or "off"}
           @param status_out: multiprocessing one-way Pipe to send status in the following format:
                {"status": "on" or "off"}
+          @param T: sampling period in milliseconds (aka data is sent every T ms)
+          
           @rtype: Subsystem
           @return: Initialized subsystem with necessary Pipes for communication
           """
 
           # initialize the subsystem parent class with data pipes
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
-
+          
+          self.T = T
           # initialize the logger
           #self.logger = mp.log_to_stderr()
 
@@ -105,5 +107,5 @@ class Sensor(Subsystem):
                                                   "humidity": sht40_humidity.value})
                     
                     delta_ns = time.monotonic_ns() - cur_ns
-                    print("SENSE:\t\tData read and transmitted in %d ns", delta_ns)
-                    time.sleep((TRANSMISSION_T*1000 - delta_ns)/1000000)
+                    print(f"SENSE:\t\tData read and transmitted in {delta_ns/1e6} ms")
+                    time.sleep((self.T*1e6 - delta_ns)/1e9)

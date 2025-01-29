@@ -26,6 +26,7 @@ class Subsystem():
             {"status": "on" or "off"}
         @param status_out: multiprocessing one-way Pipe to send status in the following format:
             {"status": "on" or "off"}
+
         @rtype: Subsystem
         @return: Initialized subsystem with necessary Pipes for communication
         """

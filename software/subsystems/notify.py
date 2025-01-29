@@ -12,7 +12,8 @@ class Notifier(Subsystem):
                  set_points_in: mp.connection.Connection = None,
                  set_points_out: mp.connection.Connection = None,
                  status_in: mp.connection.Connection = None,
-                 status_out: mp.connection.Connection = None) -> 'Notifier':
+                 status_out: mp.connection.Connection = None,
+                 T: int = 1000) -> 'Notifier':
         """
         Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
@@ -35,8 +36,9 @@ class Notifier(Subsystem):
         # initialize the subsystem parent class with data pipes
         super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
+        self.T = T
         # initialize the logger
-        self.logger = mp.log_to_stderr()
+        #self.logger = mp.log_to_stderr()
 
         #self.flagger = Flagger()
         #self.telebot = TeleBot()

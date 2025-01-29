@@ -34,11 +34,11 @@ if __name__ == "__main__":
     print("DATA BUS:\tPipes created")
 
 #-- Instantiate subsystems
-    the_sensor = Sensor(sensor_data_out=sensor_send_sensor_data)
+    the_sensor = Sensor(T=200, sensor_data_out=sensor_send_sensor_data)
     #the_interfacer = Interfacer(sensor_data_in=interfacer_receive_sensor_data, set_points_out=interfacer_send_set_points, status_out=interfacer_send_status)
-    the_controller = Controller(sensor_data_in=controller_receive_sensor_data, set_points_in=controller_receive_set_points, status_in=controller_receive_status)
+    the_controller = Controller(T=200, sensor_data_in=controller_receive_sensor_data, set_points_in=controller_receive_set_points, status_in=controller_receive_status)
     the_logger = Logger(sensor_data_in=logger_receive_sensor_data, set_points_in=logger_receive_set_points)
-    the_notifier = Notifier(sensor_data_in=notifier_receive_sensor_data, set_points_in=notifier_receive_set_points, status_in=notifier_receive_status)
+    the_notifier = Notifier(T=200, sensor_data_in=notifier_receive_sensor_data, set_points_in=notifier_receive_set_points, status_in=notifier_receive_status)
     print("DATA BUS:\tSubsystems instantiated")
 
 #-- Create processes
