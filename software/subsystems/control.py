@@ -1,6 +1,10 @@
 import multiprocessing as mp
+import RPi.GPIO as GPIO
 
 from subsystems.subsystem import Subsystem
+
+HUMIDIFIER_PIN = 21
+HUMIDIFIER_DEBOUNCE = .005 # debounce delay in seconds for the atomizer
 
 class Controller(Subsystem):
 
@@ -35,12 +39,20 @@ class Controller(Subsystem):
           # initialize the subsystem parent class with data pipes
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
+          # sampling period
           self.T = T
+          
+     #--  setup hardware interface
+          # setup humidifier control
+          GPIO.setmode(GPIO.BCM) # non-physical pin numbering: 1 -> GPIO_1
+          GPIO.setup(HUMIDIFIER_PIN, GPIO.OUT, initial=1)
+          self.atomizer_enable # used for the process turning on/off atomizer
           
           # initialize the logger
           #self.logger = mp.log_to_stderr()
 
           # create any necessary custom classes for functionality
+          self.humidity_controller = TunableBangBang(self.T, .2, 75)
           # self.pid = PID()
 
      def start(self) -> None:
@@ -48,7 +60,61 @@ class Controller(Subsystem):
           # this is where you begin looping your process for implmenting functionality
           # pipes can be assessed like the following: self.pipe_sensor_data_in.send(<data_here>)
           # data packets can be created like the following: data_dict = {"CO2": 5.1, "temperature": 37.0, "humidity": 90.0}
-          pass
+          #-- Poll pipes and distrubute data
+
+          while True:
+               # poll and receive sensor data
+               if self.pipe_sensor_data_in.poll():
+                    sensor_data = self.pipe_sensor_data_in.recv()
+                    print("CONTROL:\t\tSensor data received")
+                    # calculate time to enable humidity controller
+                    self.atomizer_enable.join()
+                    print("CONTROL:\t\tAtomizer process joined and ready for next control loop")
+                    atomizer_time_ms = self.humidity_controller.output(sensor_data["humidity"])
+                    print(f"CONTROL:\t\tAtomizer to be enabled for {atomizer_time_ms} ms")                    
+                    self.atomizer_enable = mp.Process(target=self.runAtommizer, args=(atomizer_time_ms))
+                    self.atomizer_enable.start()
+                    
+               # poll and receive set points
+               if self.pipe_set_point_in.poll():
+                    set_point = self.pipe_set_point_in.recv()
+                    print("CONTROL:\t\tSet points received")
+                    self.humidity_controller.setpoint(set_point["humidity"])
+
+               # poll and receive status
+               if self.pipe_status_in.poll():
+                    status = self.pipe_status_in.recv()
+                    print("CONTROL:\t\tStatus received")
+                    self.humidity_controller.status(status["humidity"]=="on")
+     
+     def runAtomizer(self, on_ms: int) -> None:
+          """
+          Turn on the humidifier for a specified amount of time
+
+          @param on_ms: amount of time in milliseconds that the actuator should be turned on
+
+          @rtype None
+          """
+          # turn actuator on by simulating two button presses
+          GPIO.output(HUMIDIFIER_PIN, 0)
+          time.sleep(HUMIDIFIER_DEBOUNCE)
+          GPIO.output(HUMIDIFIER_PIN, 1)
+          time.sleep(HUMIDIFIER_DEBOUNCE)
+
+          # wait
+          time.sleep(on_ms/1000)
+
+          # turn actuator off
+          GPIO.output(HUMIDIFIER_PIN, 0)
+          time.sleep(HUMIDIFIER_DEBOUNCE)
+          GPIO.output(HUMIDIFIER_PIN, 1)
+          time.sleep(HUMIDIFIER_DEBOUNCE)
+          GPIO.output(HUMIDIFIER_PIN, 0)
+          time.sleep(HUMIDIFIER_DEBOUNCE)
+          GPIO.output(HUMIDIFIER_PIN, 1)
+          time.sleep(HUMIDIFIER_DEBOUNCE)
+
+          return
 
 class PID:
      
@@ -190,15 +256,15 @@ class TunableBangBang:
 
      # DUTY_CYCLE: float        # duty cycle for actuator: [0,1]
      # INIT_THRESH: float       # threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
-     # T: float                 # sample time in seconds
+     # T: int                   # sample time in milliseconds
      # _set_point: float        # the set point to control to
      # _status: bool            # enable/disable controller
 
-     def __init__(self, t: float, duty_cycle: float, init_thresh: float) -> 'TunableBangBang':
+     def __init__(self, t: int, duty_cycle: float, init_thresh: float) -> 'TunableBangBang':
           """
           Initialize the controller with provided values. Status is False (disabled) and the set point is uninitialized on initialization.
 
-          @param t: sample time in seconds
+          @param t: sample time in milliseconds
           @param duty_cycle: duty cycle for actuator: [0,1]
           @param init_thresh: threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
 
@@ -218,7 +284,7 @@ class TunableBangBang:
           @param pt: the most recent data point
 
           @rtype float
-          @return time in seconds that the actuator should be turned on
+          @return time in milliseconds that the actuator should be turned on
           """
 
           # check for uninitialized set point
