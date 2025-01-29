@@ -7,12 +7,12 @@ from subsystems.subsystem import Subsystem
 
 class Notifier(Subsystem):
 
-    def __init__(self, sensor_data_in: mp.connection.PipeConnection = None,
-                 sensor_data_out: mp.connection.PipeConnection = None,
-                 set_points_in: mp.connection.PipeConnection = None,
-                 set_points_out: mp.connection.PipeConnection = None,
-                 status_in: mp.connection.PipeConnection = None,
-                 status_out: mp.connection.PipeConnection = None) -> 'Notifier':
+    def __init__(self, sensor_data_in: mp.connection.Connection = None,
+                 sensor_data_out: mp.connection.Connection = None,
+                 set_points_in: mp.connection.Connection = None,
+                 set_points_out: mp.connection.Connection = None,
+                 status_in: mp.connection.Connection = None,
+                 status_out: mp.connection.Connection = None) -> 'Notifier':
         """
         Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
@@ -42,7 +42,22 @@ class Notifier(Subsystem):
         #self.telebot = TeleBot()
 
     def start(self) -> None:
-        pass
+        #-- Poll pipes and distrubute data
+        while True:
+            # poll, receive, and distribute sensor data
+            if self.pipe_sensor_data_in.poll():
+                sensor_data = self.pipe_sensor_data_in.recv()
+                print("NOTIFY:\t\tSensor data received")
+  
+            # poll, receive, and distribute set points
+            if self.pipe_set_point_in.poll():
+                set_point = self.pipe_set_point_in.recv()
+                print("NOTIFY:\t\tSet points received")
+
+            # poll, receive, and distribute status
+            if self.pipe_status_in.poll():
+                status = self.pipe_status_in.recv()
+                print("NOTIFY:\t\tStatus received")
 
 class Flagger():
 

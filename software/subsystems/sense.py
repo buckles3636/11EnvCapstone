@@ -14,12 +14,12 @@ from sensirion_i2c_stc3x.device import Stc3xDevice
 
 class Sensor(Subsystem):
 
-     def __init__(self, sensor_data_in: mp.connection.PipeConnection = None,
-                 sensor_data_out: mp.connection.PipeConnection = None,
-                 set_points_in: mp.connection.PipeConnection = None,
-                 set_points_out: mp.connection.PipeConnection = None,
-                 status_in: mp.connection.PipeConnection = None,
-                 status_out: mp.connection.PipeConnection = None) -> 'Sensor':
+     def __init__(self, sensor_data_in: mp.connection.Connection = None,
+                 sensor_data_out: mp.connection.Connection = None,
+                 set_points_in: mp.connection.Connection = None,
+                 set_points_out: mp.connection.Connection = None,
+                 status_in: mp.connection.Connection = None,
+                 status_out: mp.connection.Connection = None) -> 'Sensor':
           """
           Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
@@ -43,7 +43,7 @@ class Sensor(Subsystem):
           super().__init__(sensor_data_in, sensor_data_out, set_points_in, set_points_out, status_in, status_out)
 
           # initialize the logger
-          self.logger = mp.log_to_stderr()
+          #self.logger = mp.log_to_stderr()
 
      def start(self) -> None:
           # override the parent start() function
@@ -70,16 +70,16 @@ class Sensor(Subsystem):
                time.sleep(0.014)
 
                # Output serial number for SHT40
-               sht40_serial_number = sht40_sensor.serial_number()
-               logger.info(f"SHT4x Serial Number = {sht40_serial_number}")
+               sht40_serial_number = self.sht40_sensor.serial_number()
+               print(f"SENSE:\t\tSHT4x Serial Number = {sht40_serial_number}")
 
                # Output the product identifier and serial number for STC31
-               (stc31_product_id, stc31_serial_number) = stc31_sensor.get_product_id()
-               self.logger.info(f"STC3x Product id = {stc31_product_id}")
-               self.logger.info(f"STC3x Serial Number = {stc31_serial_number}")
+               (stc31_product_id, stc31_serial_number) = self.stc31_sensor.get_product_id()
+               print(f"SENSE:\t\tSTC3x Product id = {stc31_product_id}")
+               print(f"SENSE:\t\tSTC3x Serial Number = {stc31_serial_number}")
 
                # Measure STC31-C CO2 in air in range 0% - 25%
-               stc31_sensor.set_binary_gas(19)
+               self.stc31_sensor.set_binary_gas(19)
 
                while True:
                     # Set the sampling to 1Hz
@@ -97,8 +97,8 @@ class Sensor(Subsystem):
 
                     # Log CO2 concentration in Vol%, temperature in degree celsius,
                     # and humidity in %
-                    self.logger.info({"CO2": co2_concentration, "temperature": sht40_temperature, 
-                                                  "humidity": sht40_humidity})
-                    self.pipe_sensor_data_out.send({"CO2": co2_concentration, "temperature": sht40_temperature, 
-                                                  "humidity": sht40_humidity})
-                    self.logger.info("data sent")
+                    #print({"CO2": co2_concentration.value, "temperature": sht40_temperature.value, 
+                    #                              "humidity": sht40_humidity.value})
+                    self.pipe_sensor_data_out.send({"CO2": co2_concentration.value, "temperature": sht40_temperature.value, 
+                                                  "humidity": sht40_humidity.value})
+                    print("SENSE:\t\tData read and transmitted")

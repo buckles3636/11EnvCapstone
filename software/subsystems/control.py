@@ -4,12 +4,12 @@ from subsystems.subsystem import Subsystem
 
 class Controller(Subsystem):
 
-     def __init__(self, sensor_data_in: mp.connection.PipeConnection = None,
-                    sensor_data_out: mp.connection.PipeConnection = None,
-                    set_points_in: mp.connection.PipeConnection = None,
-                    set_points_out: mp.connection.PipeConnection = None,
-                    status_in: mp.connection.PipeConnection = None,
-                    status_out: mp.connection.PipeConnection = None) -> 'Controller':
+     def __init__(self, sensor_data_in: mp.connection.Connection = None,
+                    sensor_data_out: mp.connection.Connection = None,
+                    set_points_in: mp.connection.Connection = None,
+                    set_points_out: mp.connection.Connection = None,
+                    status_in: mp.connection.Connection = None,
+                    status_out: mp.connection.Connection = None) -> 'Controller':
           """
           Initialize the subsystem with one-way Pipes to communicate with the data bus.
 
