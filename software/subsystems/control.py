@@ -1,10 +1,11 @@
 import multiprocessing as mp
 import RPi.GPIO as GPIO
+import time
 
 from subsystems.subsystem import Subsystem
 
 HUMIDIFIER_PIN = 21
-HUMIDIFIER_DEBOUNCE = .005 # debounce delay in seconds for the atomizer
+HUMIDIFIER_DEBOUNCE = .05 # debounce delay in seconds for the atomizer
 
 class Controller(Subsystem):
 
@@ -46,13 +47,16 @@ class Controller(Subsystem):
           # setup humidifier control
           GPIO.setmode(GPIO.BCM) # non-physical pin numbering: 1 -> GPIO_1
           GPIO.setup(HUMIDIFIER_PIN, GPIO.OUT, initial=1)
-          self.atomizer_enable # used for the process turning on/off atomizer
+          self.atomizer_enable = None # used for the process turning on/off atomizer
           
           # initialize the logger
           #self.logger = mp.log_to_stderr()
 
           # create any necessary custom classes for functionality
-          self.humidity_controller = TunableBangBang(self.T, .2, 75)
+          self.humidity_controller = TunableBangBang(self.T, .8, 80)
+          self.humidity_controller.status(True)
+          self.humidity_controller.setpoint(85)
+          
           # self.pid = PID()
 
      def start(self) -> None:
@@ -68,12 +72,12 @@ class Controller(Subsystem):
                     sensor_data = self.pipe_sensor_data_in.recv()
                     print("CONTROL:\t\tSensor data received")
                     # calculate time to enable humidity controller
-                    self.atomizer_enable.join()
                     print("CONTROL:\t\tAtomizer process joined and ready for next control loop")
                     atomizer_time_ms = self.humidity_controller.output(sensor_data["humidity"])
                     print(f"CONTROL:\t\tAtomizer to be enabled for {atomizer_time_ms} ms")                    
-                    self.atomizer_enable = mp.Process(target=self.runAtommizer, args=(atomizer_time_ms))
+                    self.atomizer_enable = mp.Process(target=self.runAtomizer, args=(atomizer_time_ms,))
                     self.atomizer_enable.start()
+                    self.atomizer_enable.join()
                     
                # poll and receive set points
                if self.pipe_set_point_in.poll():
@@ -95,6 +99,11 @@ class Controller(Subsystem):
 
           @rtype None
           """
+          
+          # don't do anything if it is supposed to be off
+          if on_ms == 0:
+               return
+               
           # turn actuator on by simulating two button presses
           GPIO.output(HUMIDIFIER_PIN, 0)
           time.sleep(HUMIDIFIER_DEBOUNCE)
@@ -299,7 +308,7 @@ class TunableBangBang:
 
           if pt < self._set_point:
                if pt < self.INIT_THRESH:
-                    return self.T # actuator on for complete period
+                    return self.T*.9 # actuator on for complete period (a bit less to ensure we aren't slower than our data)
                else:
                     return self.T * self.DUTY_CYCLE # actuator on for duty cycle
           else:
