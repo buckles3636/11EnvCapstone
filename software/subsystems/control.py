@@ -4,8 +4,7 @@ import time
 
 from subsystems.subsystem import Subsystem
 
-HUMIDIFIER_PIN = 21
-HUMIDIFIER_DEBOUNCE = .05 # debounce delay in seconds for the atomizer
+HUMIDIFIER_PIN = 12
 
 class Controller(Subsystem):
 
@@ -46,14 +45,15 @@ class Controller(Subsystem):
      #--  setup hardware interface
           # setup humidifier control
           GPIO.setmode(GPIO.BCM) # non-physical pin numbering: 1 -> GPIO_1
-          GPIO.setup(HUMIDIFIER_PIN, GPIO.OUT, initial=1)
-          self.atomizer_enable = None # used for the process turning on/off atomizer
+          GPIO.setup(HUMIDIFIER_PIN, GPIO.OUT)
+          GPIO.output(HUMIDIFIER_PIN, 1)
+          self.humidifier_status = False
           
           # initialize the logger
           #self.logger = mp.log_to_stderr()
 
           # create any necessary custom classes for functionality
-          self.humidity_controller = TunableBangBang(self.T, .8, 80)
+          self.humidity_controller = TunableBangBang(40, 80)
           self.humidity_controller.status(True)
           self.humidity_controller.setpoint(85)
           
@@ -72,12 +72,25 @@ class Controller(Subsystem):
                     sensor_data = self.pipe_sensor_data_in.recv()
                     print("CONTROL:\t\tSensor data received")
                     # calculate time to enable humidity controller
-                    print("CONTROL:\t\tAtomizer process joined and ready for next control loop")
-                    atomizer_time_ms = self.humidity_controller.output(sensor_data["humidity"])
-                    print(f"CONTROL:\t\tAtomizer to be enabled for {atomizer_time_ms} ms")                    
-                    self.atomizer_enable = mp.Process(target=self.runAtomizer, args=(atomizer_time_ms,))
-                    self.atomizer_enable.start()
-                    self.atomizer_enable.join()
+                    atomizer_duty = self.humidity_controller.output(sensor_data["humidity"])
+                    print(f"CONTROL:\t\tAtomizer duty cycle: {atomizer_duty}")                    
+                    if atomizer_duty != 0 and not self.humidifier_status:  #if I should be on and I'm not
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         self.humidifier_status = True
+                    elif atomizer_duty == 0 and self.humidifier_status: #if I should be off and I'm not
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         self.humidifier_status = False
+                         
                     
                # poll and receive set points
                if self.pipe_set_point_in.poll():
@@ -90,40 +103,7 @@ class Controller(Subsystem):
                     status = self.pipe_status_in.recv()
                     print("CONTROL:\t\tStatus received")
                     self.humidity_controller.status(status["humidity"]=="on")
-     
-     def runAtomizer(self, on_ms: int) -> None:
-          """
-          Turn on the humidifier for a specified amount of time
 
-          @param on_ms: amount of time in milliseconds that the actuator should be turned on
-
-          @rtype None
-          """
-          
-          # don't do anything if it is supposed to be off
-          if on_ms == 0:
-               return
-               
-          # turn actuator on by simulating two button presses
-          GPIO.output(HUMIDIFIER_PIN, 0)
-          time.sleep(HUMIDIFIER_DEBOUNCE)
-          GPIO.output(HUMIDIFIER_PIN, 1)
-          time.sleep(HUMIDIFIER_DEBOUNCE)
-
-          # wait
-          time.sleep(on_ms/1000)
-
-          # turn actuator off
-          GPIO.output(HUMIDIFIER_PIN, 0)
-          time.sleep(HUMIDIFIER_DEBOUNCE)
-          GPIO.output(HUMIDIFIER_PIN, 1)
-          time.sleep(HUMIDIFIER_DEBOUNCE)
-          GPIO.output(HUMIDIFIER_PIN, 0)
-          time.sleep(HUMIDIFIER_DEBOUNCE)
-          GPIO.output(HUMIDIFIER_PIN, 1)
-          time.sleep(HUMIDIFIER_DEBOUNCE)
-
-          return
 
 class PID:
      
@@ -269,12 +249,11 @@ class TunableBangBang:
      # _set_point: float        # the set point to control to
      # _status: bool            # enable/disable controller
 
-     def __init__(self, t: int, duty_cycle: float, init_thresh: float) -> 'TunableBangBang':
+     def __init__(self, duty_cycle: int, init_thresh: float) -> 'TunableBangBang':
           """
           Initialize the controller with provided values. Status is False (disabled) and the set point is uninitialized on initialization.
 
-          @param t: sample time in milliseconds
-          @param duty_cycle: duty cycle for actuator: [0,1]
+          @param duty_cycle: duty cycle for actuator: [0,100]
           @param init_thresh: threshold where control switches from 100% duty cycle to self.DUTY_CYCLE
 
           @rtype TunableBangBang
@@ -282,7 +261,6 @@ class TunableBangBang:
           """
           self.DUTY_CYCLE = duty_cycle
           self.INIT_THRESH = init_thresh
-          self.T = t
           self._set_point = None
           self._status = False
 
@@ -292,8 +270,8 @@ class TunableBangBang:
 
           @param pt: the most recent data point
 
-          @rtype float
-          @return time in milliseconds that the actuator should be turned on
+          @rtype int
+          @return duty cycle for the actuator
           """
 
           # check for uninitialized set point
@@ -308,9 +286,9 @@ class TunableBangBang:
 
           if pt < self._set_point:
                if pt < self.INIT_THRESH:
-                    return self.T*.9 # actuator on for complete period (a bit less to ensure we aren't slower than our data)
+                    return 100
                else:
-                    return self.T * self.DUTY_CYCLE # actuator on for duty cycle
+                    return self.DUTY_CYCLE # actuator on for duty cycle
           else:
                return 0 # actuator off
      
