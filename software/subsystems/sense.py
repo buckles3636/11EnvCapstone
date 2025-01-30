@@ -106,6 +106,6 @@ class Sensor(Subsystem):
                     self.pipe_sensor_data_out.send({"CO2": co2_concentration.value, "temperature": sht40_temperature.value, 
                                                   "humidity": sht40_humidity.value})
                     
-                    delta_ns = time.monotonic_ns() - cur_ns
+                    delta_ns = max(0, time.monotonic_ns() - cur_ns) #clamp if slow delay
                     print(f"SENSE:\t\tData read and transmitted in {delta_ns/1e6} ms")
                     time.sleep((self.T*1e6 - delta_ns)/1e9)
