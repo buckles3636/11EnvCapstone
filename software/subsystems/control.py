@@ -5,8 +5,8 @@ import time
 from subsystems.subsystem import Subsystem
 
 HUMIDIFIER_PIN = 12
-HUMIDIFIER_INIT_PERIOD = 4    # humidifer is turned on one cycle (second) per period when duty is active and set point has not been reached
-HUMIDIFIER_PERIOD = 10        # humidifer is turned on one cycle (second) per period when duty is active
+HUMIDIFIER_INIT_PERIOD = 10    # humidifer is turned on one cycle (second) per period when duty is active and set point has not been reached
+HUMIDIFIER_PERIOD = 25         # humidifer is turned on one cycle (second) per period when duty is active
 HUMIDIFIER_DUTY = 50          # duty cycle passed to tunable bang-bang controller
 class Controller(Subsystem):
 
@@ -69,27 +69,40 @@ class Controller(Subsystem):
           # pipes can be assessed like the following: self.pipe_sensor_data_in.send(<data_here>)
           # data packets can be created like the following: data_dict = {"CO2": 5.1, "temperature": 37.0, "humidity": 90.0}
           #-- Poll pipes and distrubute data
+          
+          try:
+               while True:
+                    # poll and receive sensor data
+                    if self.pipe_sensor_data_in.poll():
+                         sensor_data = self.pipe_sensor_data_in.recv()
+                         print("CONTROL:\t\tSensor data received")
+                         # calculate time to enable humidity controller
+                         atomizer_duty = self.humidity_controller.output(sensor_data["humidity"])
+                         self.atomizerLogic(atomizer_duty)                     
+                         
+                    # poll and receive set points
+                    if self.pipe_set_point_in.poll():
+                         set_point = self.pipe_set_point_in.recv()
+                         print("CONTROL:\t\tSet points received")
+                         self.humidity_controller.setpoint(set_point["humidity"])
 
-          while True:
-               # poll and receive sensor data
-               if self.pipe_sensor_data_in.poll():
-                    sensor_data = self.pipe_sensor_data_in.recv()
-                    print("CONTROL:\t\tSensor data received")
-                    # calculate time to enable humidity controller
-                    atomizer_duty = self.humidity_controller.output(sensor_data["humidity"])
-                    self.atomizerLogic(atomizer_duty)                     
-                    
-               # poll and receive set points
-               if self.pipe_set_point_in.poll():
-                    set_point = self.pipe_set_point_in.recv()
-                    print("CONTROL:\t\tSet points received")
-                    self.humidity_controller.setpoint(set_point["humidity"])
-
-               # poll and receive status
-               if self.pipe_status_in.poll():
-                    status = self.pipe_status_in.recv()
-                    print("CONTROL:\t\tStatus received")
-                    self.humidity_controller.status(status["humidity"]=="on")
+                    # poll and receive status
+                    if self.pipe_status_in.poll():
+                         status = self.pipe_status_in.recv()
+                         print("CONTROL:\t\tStatus received")
+                         self.humidity_controller.status(status["humidity"]=="on")
+          except:
+               pass
+          if self.humidifier_status == True: # turn off humidifier if process is cancelled
+               GPIO.output(HUMIDIFIER_PIN, 0)
+               time.sleep(.05)
+               GPIO.output(HUMIDIFIER_PIN, 1)
+               time.sleep(.05)
+               GPIO.output(HUMIDIFIER_PIN, 0)
+               time.sleep(.05)
+               GPIO.output(HUMIDIFIER_PIN, 1)
+               time.sleep(.05)
+               self.humidifier_status = False
 
 
      def atomizerLogic(self, duty: int) -> None:
@@ -101,131 +114,85 @@ class Controller(Subsystem):
           @rtype None
           """
           
-          if not self.humidifier_initialized: #if the chamber has not reached the setpoint for the first time
-               if duty == 100:
-                    print("Atomizer in initial phase: full bore")
+          if duty == 100:
+               print("Atomizer: full bore")
+               if self.humidifier_status == False:
+                    GPIO.output(HUMIDIFIER_PIN, 0)
+                    time.sleep(.05)
+                    GPIO.output(HUMIDIFIER_PIN, 1)
+                    time.sleep(.05)
+                    self.humidifier_status = True
+                    self.count = -1 # reset count
+
+          elif duty == HUMIDIFIER_DUTY:
+               if HUMIDIFIER_INIT_PERIOD - 2 == self.count: #turn on for last cycle in period
+                    print("Atomizer: sub-setpoint duty cycle activate")
                     if self.humidifier_status == False:
                          GPIO.output(HUMIDIFIER_PIN, 0)
                          time.sleep(.05)
                          GPIO.output(HUMIDIFIER_PIN, 1)
                          time.sleep(.05)
                          self.humidifier_status = True
-                         self.count = -1 # reset count
-
-               elif duty == HUMIDIFIER_DUTY:
-                    if HUMIDIFIER_INIT_PERIOD - 2 == self.count: #turn on for last cycle in period
-                         print("Atomizer in initial phase: duty cycle activate")
-                         if self.humidifier_status == False:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = True
-                    elif HUMIDIFIER_INIT_PERIOD - 1 == self.count:
-                         print("Atomizer in initial phase: duty cycle deactivate")
-                         if self.humidifier_status == True:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = False
-                    else:
-                         print("Atomizer in initial phase: duty cycle deactivate")
-                         if self.humidifier_status == True:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = False
-               else:
-                    print("Atomizer in exiting initial phase")
-                    self.humidifier_initialized = True
+               elif HUMIDIFIER_INIT_PERIOD - 1 == self.count:
+                    print("Atomizer: sub-setpoint duty cycle deactivate")
                     if self.humidifier_status == True:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = False
-               
-               self.count = (self.count+1) % HUMIDIFIER_INIT_PERIOD
-
-          else: #the chamber has already reached the setpoint once
-               if duty == 0:
-                    if HUMIDIFIER_PERIOD - 2 == self.count: #turn on for last cycle in period
-                         print("Atomizer: duty cycle activate")
-                         if self.humidifier_status == False:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = True
-                    elif HUMIDIFIER_PERIOD - 1 == self.count:
-                         print("Atomizer: duty cycle deactivate")
-                         if self.humidifier_status == True:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = False
-                    else:
-                         print("Atomizer: duty cycle deactivate")
-                         if self.humidifier_status == True:
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 0)
-                              time.sleep(.05)
-                              GPIO.output(HUMIDIFIER_PIN, 1)
-                              time.sleep(.05)
-                              self.humidifier_status = False
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         self.humidifier_status = False
                else:
-                    print("Atomizer: full bore")
+                    print("Atomizer: sub-setpoint duty cycle deactivate")
+                    if self.humidifier_status == True:
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         self.humidifier_status = False
+               self.count = (self.count+1) % HUMIDIFIER_INIT_PERIOD
+          else:
+               if HUMIDIFIER_PERIOD - 2 == self.count: #turn on for last cycle in period
+                    print("Atomizer: super-setpoint duty cycle activate")
                     if self.humidifier_status == False:
                          GPIO.output(HUMIDIFIER_PIN, 0)
                          time.sleep(.05)
                          GPIO.output(HUMIDIFIER_PIN, 1)
                          time.sleep(.05)
+                         self.humidifier_status = True
+               elif HUMIDIFIER_PERIOD - 1 == self.count:
+                    print("Atomizer: super-setpoint duty cycle deactivate")
+                    if self.humidifier_status == True:
                          GPIO.output(HUMIDIFIER_PIN, 0)
                          time.sleep(.05)
                          GPIO.output(HUMIDIFIER_PIN, 1)
                          time.sleep(.05)
-
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         self.humidifier_status = False
+               else:
+                    print("Atomizer: super-setpoint duty cycle deactivate")
+                    if self.humidifier_status == True:
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 0)
+                         time.sleep(.05)
+                         GPIO.output(HUMIDIFIER_PIN, 1)
+                         time.sleep(.05)
+                         self.humidifier_status = False
                self.count = (self.count+1) % HUMIDIFIER_PERIOD
 
-
-          if atomizer_duty != 0 and not self.humidifier_status:  #if I should be on and I'm not
-               GPIO.output(HUMIDIFIER_PIN, 0)
-               time.sleep(.05)
-               GPIO.output(HUMIDIFIER_PIN, 1)
-               time.sleep(.05)
-               self.humidifier_status = True
-          elif atomizer_duty == 0 and self.humidifier_status: #if I should be off and I'm not
-               GPIO.output(HUMIDIFIER_PIN, 0)
-               time.sleep(.05)
-               GPIO.output(HUMIDIFIER_PIN, 1)
-               time.sleep(.05)
-               GPIO.output(HUMIDIFIER_PIN, 0)
-               time.sleep(.05)
-               GPIO.output(HUMIDIFIER_PIN, 1)
-               time.sleep(.05)
-               self.humidifier_status = False
 
 class PID:
      
