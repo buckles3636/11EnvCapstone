@@ -1,12 +1,15 @@
 import multiprocessing
 from multiprocessing import Process, Pipe
 import logging
+import RPi.GPIO as GPIO
 
 from subsystems.sense import Sensor
 #from subsystems.interface import Interfacer
 from subsystems.control import Controller
 from subsystems.log import Logger
 from subsystems.notify import Notifier
+
+SAMPLE_PERIOD = 200 # sample period in milliseconds
 
 if __name__ == "__main__":
 #-- Create logger
@@ -34,11 +37,11 @@ if __name__ == "__main__":
     print("DATA BUS:\tPipes created")
 
 #-- Instantiate subsystems
-    the_sensor = Sensor(T=200, sensor_data_out=sensor_send_sensor_data)
+    the_sensor = Sensor(T=SAMPLE_PERIOD, sensor_data_out=sensor_send_sensor_data)
     #the_interfacer = Interfacer(sensor_data_in=interfacer_receive_sensor_data, set_points_out=interfacer_send_set_points, status_out=interfacer_send_status)
-    the_controller = Controller(T=200, sensor_data_in=controller_receive_sensor_data, set_points_in=controller_receive_set_points, status_in=controller_receive_status)
+    the_controller = Controller(T=SAMPLE_PERIOD, sensor_data_in=controller_receive_sensor_data, set_points_in=controller_receive_set_points, status_in=controller_receive_status)
     the_logger = Logger(sensor_data_in=logger_receive_sensor_data, set_points_in=logger_receive_set_points)
-    the_notifier = Notifier(T=200, sensor_data_in=notifier_receive_sensor_data, set_points_in=notifier_receive_set_points, status_in=notifier_receive_status)
+    the_notifier = Notifier(T=SAMPLE_PERIOD, sensor_data_in=notifier_receive_sensor_data, set_points_in=notifier_receive_set_points, status_in=notifier_receive_status)
     print("DATA BUS:\tSubsystems instantiated")
 
 #-- Create processes
@@ -64,31 +67,36 @@ if __name__ == "__main__":
     #the_logger_process.join()
     #the_notifier_process.join()
 
-#-- Poll pipes and distrubute data
-    while True:
-        # poll, receive, and distribute sensor data
-        if sensor_receive_sensor_data.poll():
-            sensor_data = sensor_receive_sensor_data.recv()
-            interfacer_send_sensor_data.send(sensor_data)
-            controller_send_sensor_data.send(sensor_data)
-            notifier_send_sensor_data.send(sensor_data)
-            logger_send_sensor_data.send(sensor_data)
-            print("DATA BUS:\tSensor data RX/TX complete")
+#-- Poll pipes and distrubute data, with cleanup on keyboard exit after
+    try:
+        while True:
+            # poll, receive, and distribute sensor data
+            if sensor_receive_sensor_data.poll():
+                sensor_data = sensor_receive_sensor_data.recv()
+                #interfacer_send_sensor_data.send(sensor_data)
+                controller_send_sensor_data.send(sensor_data)
+                #notifier_send_sensor_data.send(sensor_data)
+                #logger_send_sensor_data.send(sensor_data)
+                print("DATA BUS:\tSensor data RX/TX complete (CO2: %.2f | T: %.2f | H: %.2f)" % (sensor_data["CO2"], sensor_data["temperature"], sensor_data["humidity"]))
 
-        
-        # poll, receive, and distribute set points
-        if interfacer_receive_set_points.poll():
-            set_points = interfacer_receive_set_points.recv()
-            controller_send_set_points.send(set_points)
-            notifier_send_set_points.send(set_points)
-            logger_send_set_points.send(set_points)
-            print("DATA BUS:\tSet points RX/TX complete")
+            
+            # poll, receive, and distribute set points
+            if interfacer_receive_set_points.poll():
+                set_points = interfacer_receive_set_points.recv()
+                controller_send_set_points.send(set_points)
+                notifier_send_set_points.send(set_points)
+                logger_send_set_points.send(set_points)
+                print("DATA BUS:\tSet points RX/TX complete")
 
 
-        # poll, receive, and distribute status
-        if interfacer_receive_status.poll():
-            status = interfacer_receive_status.recv()
-            controller_send_status.send(status)
-            notifier_send_status.send(status)
-            print("DATA BUS:\tStatus RX/TX complete")
+            # poll, receive, and distribute status
+            if interfacer_receive_status.poll():
+                status = interfacer_receive_status.recv()
+                controller_send_status.send(status)
+                notifier_send_status.send(status)
+                print("DATA BUS:\tStatus RX/TX complete")
+    except:
+            pass
+    GPIO.cleanup()
+    print("GPIO cleaned up")
 
